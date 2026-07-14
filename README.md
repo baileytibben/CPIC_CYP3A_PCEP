@@ -41,10 +41,8 @@ Each observation may include:
 - Required packages listed in `sessionInfo.txt`
 
 ### To reproduce analysis:
-1. Run `scripts/01_cleaning.R`
+1. Run `scripts/01_cleaning_and_figures.R`
 2. Run `scripts/02_analysis.R`
-3. Run `scripts/03_figures.R`
-
 ---
 
 ## ⚠️ Notes on Data
