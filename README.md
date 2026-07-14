@@ -32,22 +32,7 @@ Each observation may include:
 
 - When multiple measurements were reported for the same allele–substrate pair, values were retained separately
 - Missing values were handled as NA and excluded from statistical modeling where appropriate
----
 
-## 📁 Repository Structure
-
-```plaintext
-├── data/
-│   ├── raw/                              # Original curated data from publications
-│
-├── scripts/
-│   ├── 01_data_cleaning_and_figures.R    # Data formatting and figure generation
-│   ├── 02_analysis.R                     # Statistical analysis
-│
-├── sessionInfo.txt                       # R session info (package versions)
-├── README.md
-├── LICENSE
-```
 ---
 ## ▶️ Reproducibility
 
