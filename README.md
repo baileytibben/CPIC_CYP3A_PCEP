@@ -38,15 +38,13 @@ Each observation may include:
 
 ```plaintext
 ├── data/
-│   ├── raw/                  # Original curated data from publications (unaltered)
-│   └── processed/            # Cleaned dataset used for analysis
+│   ├── raw/                              # Original curated data from publications
 │
 ├── scripts/
-│   ├── 01_data_cleaning.R    # Data cleaning and formatting
-│   ├── 02_analysis.R         # Statistical analysis
-│   └── 03_figures.R          # Figure generation
+│   ├── 01_data_cleaning_and_figures.R    # Data formatting and figure generation
+│   ├── 02_analysis.R                     # Statistical analysis
 │
-├── sessionInfo.txt           # R session info (package versions)
+├── sessionInfo.txt                       # R session info (package versions)
 ├── README.md
 ├── LICENSE
 ```
