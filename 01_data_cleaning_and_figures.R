@@ -1,15 +1,11 @@
 library(reshape2)
 library(tidyverse)
 library(stringr)
-library(lme4)
-library(pbkrtest)
-library(lmerTest)
-library(emmeans)
 
 CYP3A4.act <- read.table("CYP3A4_invitro.csv", header=TRUE, sep=",", fill=TRUE, quote="")
 
-##plots
-#boxplot of activity, all substrates
+#plots
+##boxplot of activity, all substrates
 CYP3A4_act_long <- melt(
   CYP3A4.act,
   id.vars = c("PMID", "substrate"),
@@ -50,7 +46,7 @@ p <- ggplot(CYP3A4_long_clinfxn, aes(x = allele, y = activity_percent, fill = cl
   )
 p
 
-#heatmap by substrate
+##heatmap by substrate
 CYP3A4.sub <- read.table("CYP3A4_substrate.csv", header=TRUE, sep=",", fill=TRUE, quote="")
 
 CYP3A4.sub_long <- CYP3A4.sub %>%
@@ -73,7 +69,7 @@ hm <- ggplot(CYP3A4.sub_long, aes(x = allele, y = Substrate, fill = activity)) +
   )
 hm
 
-#activity bar plot by model system
+##activity bar plot by model system
 df_summary <- act_long %>%
   group_by(system, allele) %>%
   summarise(
@@ -110,37 +106,3 @@ p <- ggplot(df_summary, aes(x = allele, y = mean_activity, fill = system)) +
     title = "CYP3A4 Activity by Allele and Model System"
   ) 
 p
-
-##statistical testing
-#test model system and substrate effects
-act_long <- CYP3A4.act %>%
-  pivot_longer(
-    cols = starts_with("CYP3A4"),   # allele columns
-    names_to = "allele",
-    values_to = "activity"
-  )
-
-act_long <- act_long %>%
-  filter(!is.na(activity))
-
-act_long$allele <- factor(act_long$allele)
-
-#substrate
-df_subset <- act_long %>%
-  group_by(allele, substrate) %>%
-  filter(n() >= 2) %>%
-  ungroup()
-
-model_subset <- lmer(activity ~ allele * substrate + (1 | PMID), data = df_subset)
-model_subset_no_int <- lmer(activity ~ allele + substrate + (1 | PMID), data = df_subset)
-anova(model_subset_no_int, model_subset)
-
-#system
-df_subset2 <- act_long %>%
-    group_by(allele, system) %>%
-    filter(n() >=2) %>%
-    ungroup()
-
-model_subset2 <- lmer(activity ~ allele * system + (1 | PMID), data = df_subset2)
-model_subset2_no_int <- lmer(activity ~ allele + system + (1 | PMID), data = df_subset2)
-anova(model_subset2_no_int, model_subset2)
