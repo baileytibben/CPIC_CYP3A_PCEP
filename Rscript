@@ -1,0 +1,146 @@
+library(reshape2)
+library(tidyverse)
+library(stringr)
+library(lme4)
+library(pbkrtest)
+library(lmerTest)
+library(emmeans)
+
+CYP3A4.act <- read.table("CYP3A4_invitro.csv", header=TRUE, sep=",", fill=TRUE, quote="")
+
+##plots
+#boxplot of activity, all substrates
+CYP3A4_act_long <- melt(
+  CYP3A4.act,
+  id.vars = c("PMID", "substrate"),
+  variable.name = "allele",
+  value.name = "activity_percent"
+)
+
+clinical_fxn_map <- data.frame(
+    allele = c("CYP3A4.2","CYP3A4.3","CYP3A4.4","CYP3A4.5","CYP3A4.6","CYP3A4.7","CYP3A4.8","CYP3A4.9","CYP3A4.10","CYP3A4.11","CYP3A4.12",
+               "CYP3A4.13","CYP3A4.14","CYP3A4.15","CYP3A4.16","CYP3A4.17","CYP3A4.18", "CYP3A4.19", "CYP3A4.20","CYP3A4.21","CYP3A4.23","CYP3A4.24",
+               "CYP3A4.26", "CYP3A4.28","CYP3A4.29","CYP3A4.30","CYP3A4.31","CYP3A4.32","CYP3A4.33","CYP3A4.34"),
+    clinicalfxn = c("uncertain","uncertain","uncertain","uncertain","No function","Decreased","Decreased","uncertain","uncertain","uncertain","uncertain",
+                 "uncertain","uncertain","uncertain","Decreased","uncertain","uncertain","uncertain","No function","uncertain","uncertain","uncertain",
+                 "No function","uncertain","uncertain","No function","uncertain","uncertain","uncertain","uncertain")
+)
+
+biochem_fxn_map <- data.frame(
+  allele = c("CYP3A4.2","CYP3A4.3","CYP3A4.4","CYP3A4.5","CYP3A4.6","CYP3A4.7","CYP3A4.8","CYP3A4.9","CYP3A4.10","CYP3A4.11","CYP3A4.12",
+             "CYP3A4.13","CYP3A4.14","CYP3A4.15","CYP3A4.16","CYP3A4.17","CYP3A4.18", "CYP3A4.19", "CYP3A4.20","CYP3A4.21","CYP3A4.23","CYP3A4.24",
+             "CYP3A4.26", "CYP3A4.28","CYP3A4.29","CYP3A4.30","CYP3A4.31","CYP3A4.32","CYP3A4.33","CYP3A4.34"),
+  biofxn = c("variable","variable","variable","variable","No function","Decreased","Decreased","variable","variable","variable","Decreased",
+             "Decreased","variable","variable","Decreased","No function","variable","variable","No function","No function","variable","variable",
+             "No function","variable","variable","No function","variable","variable","variable","variable")
+)
+  
+CYP3A4_long_clinfxn <- merge(CYP3A4_act_long, clinical_fxn_map, by="allele")
+CYP3A4_long_biofxn <- merge(CYP3A4_act_long, biochem_fxn_map, by="allele")
+
+CYP3A4_long_clinfxn$activity_percent <- as.numeric(CYP3A4_long_clinfxn$activity_percent)
+
+p <- ggplot(CYP3A4_long_clinfxn, aes(x = allele, y = activity_percent, fill = clinicalfxn)) +
+  geom_boxplot() +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+  ylim(0,6) +
+  theme_bw() +
+  theme(
+    panel.grid = element_blank()
+  )
+p
+
+#heatmap by substrate
+CYP3A4.sub <- read.table("CYP3A4_substrate.csv", header=TRUE, sep=",", fill=TRUE, quote="")
+
+CYP3A4.sub_long <- CYP3A4.sub %>%
+  pivot_longer(
+    cols = c("CYP3A4.2","CYP3A4.3","CYP3A4.4","CYP3A4.5","CYP3A4.6","CYP3A4.7","CYP3A4.8","CYP3A4.9","CYP3A4.10","CYP3A4.11","CYP3A4.12",
+    "CYP3A4.13","CYP3A4.14","CYP3A4.15","CYP3A4.16","CYP3A4.17","CYP3A4.18", "CYP3A4.19", "CYP3A4.20","CYP3A4.21","CYP3A4.23","CYP3A4.24",
+    "CYP3A4.28","CYP3A4.29","CYP3A4.30","CYP3A4.31","CYP3A4.32","CYP3A4.33","CYP3A4.34"),
+    names_to = "allele",
+    values_to = "activity"
+  )
+
+CYP3A4.sub_long$allele <- factor(CYP3A4.sub_long$allele, levels = colnames(CYP3A4.sub)[-1])
+
+hm <- ggplot(CYP3A4.sub_long, aes(x = allele, y = Substrate, fill = activity)) +
+  geom_tile(color = "grey") +
+  scale_fill_gradientn(
+    colors = c("maroon","red","pink","white","lightblue","blue"),
+    values = scales::rescale(c(0, 0.25, 0.5, 0.75, 1, 3)),
+    na.value = "darkgrey"
+  )
+hm
+
+#activity bar plot by model system
+df_summary <- act_long %>%
+  group_by(system, allele) %>%
+  summarise(
+    mean_activity = mean(activity, na.rm = TRUE),
+    sd = sd(activity, na.rm = TRUE),
+    n = n(),
+    se = sd / sqrt(n),
+    .groups = "drop"
+  )
+
+df_summary <- df_summary %>%
+  mutate(
+    allele_num = as.numeric(str_extract(allele, "(?<=\\.)\\d+"))
+  ) %>%
+  arrange(allele_num) %>%
+  mutate(
+    allele = factor(allele, levels = unique(allele))
+  )
+
+p <- ggplot(df_summary, aes(x = allele, y = mean_activity, fill = system)) +
+  geom_col(position = position_dodge(width = 0.8)) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank()
+  ) +
+  geom_errorbar(
+    aes(ymin = mean_activity - se, ymax = mean_activity + se),
+    position = position_dodge(width = 0.8),
+    width = 0.2) +
+  labs(
+    x = "Allele",
+    y = "Mean Activity",
+    fill = "System",
+    title = "CYP3A4 Activity by Allele and Model System"
+  ) 
+p
+
+##statistical testing
+#test model system and substrate effects
+act_long <- CYP3A4.act %>%
+  pivot_longer(
+    cols = starts_with("CYP3A4"),   # allele columns
+    names_to = "allele",
+    values_to = "activity"
+  )
+
+act_long <- act_long %>%
+  filter(!is.na(activity))
+
+act_long$allele <- factor(act_long$allele)
+
+#substrate
+df_subset <- act_long %>%
+  group_by(allele, substrate) %>%
+  filter(n() >= 2) %>%
+  ungroup()
+
+model_subset <- lmer(activity ~ allele * substrate + (1 | PMID), data = df_subset)
+model_subset_no_int <- lmer(activity ~ allele + substrate + (1 | PMID), data = df_subset)
+anova(model_subset_no_int, model_subset)
+
+#system
+df_subset2 <- act_long %>%
+    group_by(allele, system) %>%
+    filter(n() >=2) %>%
+    ungroup()
+
+model_subset2 <- lmer(activity ~ allele * system + (1 | PMID), data = df_subset2)
+model_subset2_no_int <- lmer(activity ~ allele + system + (1 | PMID), data = df_subset2)
+anova(model_subset2_no_int, model_subset2)
