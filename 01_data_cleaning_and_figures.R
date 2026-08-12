@@ -36,6 +36,25 @@ CYP3A4_long_biofxn <- merge(CYP3A4_act_long, biochem_fxn_map, by="allele")
 
 CYP3A4_long_clinfxn$activity_percent <- as.numeric(CYP3A4_long_clinfxn$activity_percent)
 
+##Order by function assignment
+function_order <- c(
+  "Decreased",
+  "No function",
+  "uncertain"
+)
+
+clinical_fxn_map <- clinical_fxn_map[
+  order(
+    factor(clinical_fxn_map$clinicalfxn, levels = function_order),
+    as.numeric(sub("CYP3A4\\.", "", clinical_fxn_map$allele))
+  ),
+]
+
+CYP3A4_long_clinfxn$allele <- factor(
+  CYP3A4_long_clinfxn$allele,
+  levels = clinical_fxn_map$allele
+)
+
 p <- ggplot(CYP3A4_long_clinfxn, aes(x = allele, y = activity_percent, fill = clinicalfxn)) +
   geom_boxplot() +
   geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
@@ -58,7 +77,10 @@ CYP3A4.sub_long <- CYP3A4.sub %>%
     values_to = "activity"
   )
 
-CYP3A4.sub_long$allele <- factor(CYP3A4.sub_long$allele, levels = colnames(CYP3A4.sub)[-1])
+CYP3A4.substrate_long$allele <- factor(
+  CYP3A4.substrate_long$allele,
+  levels = clinical_fxn_map$allele
+)
 
 hm <- ggplot(CYP3A4.sub_long, aes(x = allele, y = Substrate, fill = activity)) +
   geom_tile(color = "grey") +
@@ -70,6 +92,16 @@ hm <- ggplot(CYP3A4.sub_long, aes(x = allele, y = Substrate, fill = activity)) +
 hm
 
 ##activity bar plot by model system
+act_long <- CYP3A4.act %>%
+  pivot_longer(
+    cols = starts_with("CYP3A4"),   # allele columns
+    names_to = "allele",
+    values_to = "activity"
+  )
+
+act_long <- act_long %>%
+  filter(!is.na(activity)
+         
 df_summary <- act_long %>%
   group_by(system, allele) %>%
   summarise(
@@ -80,11 +112,14 @@ df_summary <- act_long %>%
     .groups = "drop"
   )
 
+df_summary <- merge(df_summary, clinical_fxn_map, by="allele")
+
 df_summary <- df_summary %>%
   mutate(
-    allele_num = as.numeric(str_extract(allele, "(?<=\\.)\\d+"))
+    allele_num = as.numeric(str_extract(allele, "(?<=\\.)\\d+")),
+    clinicalfxn = factor(clinicalfxn, levels = function_order)
   ) %>%
-  arrange(allele_num) %>%
+  arrange(clinicalfxn, allele_num) %>%
   mutate(
     allele = factor(allele, levels = unique(allele))
   )
