@@ -66,28 +66,61 @@ p <- ggplot(CYP3A4_long_clinfxn, aes(x = allele, y = activity_percent, fill = cl
 p
 
 ##heatmap by substrate
-CYP3A4.sub <- read.table("CYP3A4_substrate.csv", header=TRUE, sep=",", fill=TRUE, quote="")
+CYP3A4.substrate <- read.table("CYP3A4_substrate.csv", header=TRUE, sep=",", fill=TRUE, quote="")
 
-CYP3A4.sub_long <- CYP3A4.sub %>%
+substrate_long <- CYP3A4.substrate %>%
   pivot_longer(
-    cols = c("CYP3A4.2","CYP3A4.3","CYP3A4.4","CYP3A4.5","CYP3A4.6","CYP3A4.7","CYP3A4.8","CYP3A4.9","CYP3A4.10","CYP3A4.11","CYP3A4.12",
-    "CYP3A4.13","CYP3A4.14","CYP3A4.15","CYP3A4.16","CYP3A4.17","CYP3A4.18", "CYP3A4.19", "CYP3A4.20","CYP3A4.21","CYP3A4.23","CYP3A4.24",
-    "CYP3A4.28","CYP3A4.29","CYP3A4.30","CYP3A4.31","CYP3A4.32","CYP3A4.33","CYP3A4.34"),
+    cols = c("CYP3A4.6","CYP3A4.7","CYP3A4.8","CYP3A4.16","CYP3A4.20","CYP3A4.30","CYP3A4.2","CYP3A4.3","CYP3A4.4",
+             "CYP3A4.5","CYP3A4.9","CYP3A4.10","CYP3A4.11","CYP3A4.12","CYP3A4.13", "CYP3A4.14", "CYP3A4.15","CYP3A4.17","CYP3A4.18","CYP3A4.19",
+             "CYP3A4.21","CYP3A4.23","CYP3A4.24","CYP3A4.28","CYP3A4.29","CYP3A4.31","CYP3A4.32", "CYP3A4.33", "CYP3A4.34"),
     names_to = "allele",
-    values_to = "activity"
+    values_to = "activity_raw",
+    values_transform = list(activity_raw = as.character)
+  ) %>%
+  mutate(
+    activity_status = case_when(
+      activity_raw == "ND" ~ "Undetectable",
+      is.na(activity_raw) ~ "Missing",
+      TRUE ~ "Quantifiable"
+    ),
+    activity = suppressWarnings(as.numeric(activity_raw))
   )
 
-CYP3A4.substrate_long$allele <- factor(
-  CYP3A4.substrate_long$allele,
+substrate_long$allele <- factor(
+  substrate_long$allele,
   levels = clinical_fxn_map$allele
 )
 
-hm <- ggplot(CYP3A4.sub_long, aes(x = allele, y = Substrate, fill = activity)) +
-  geom_tile(color = "grey") +
+hm <- ggplot(substrate_long, aes(x = allele, y = Substrate)) +
+
+  geom_tile(aes(fill = activity), color = "white") +
+  
   scale_fill_gradientn(
-    colors = c("maroon","red","pink","white","lightblue","blue"),
-    values = scales::rescale(c(0, 0.25, 0.5, 0.75, 1, 3)),
-    na.value = "darkgrey"
+    colors = c("maroon","red", "pink", "white","lightblue","blue"),
+    values = scales::rescale(c(0.01, 0.25, 0.5, 0.75, 1, 3)),
+    na.value = "grey",
+    name = "Relative activity"
+  ) +
+
+  geom_tile(
+    data = substrate_long %>%
+      filter(activity_status == "Undetectable"),
+    fill = "magenta4",
+    color = "white"
+  ) +
+  
+  theme_minimal() +
+  
+  labs(
+    x = "CYP3A4 allele",
+    y = "Substrate"
+  ) +
+  
+  theme(
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    )
   )
 hm
 
