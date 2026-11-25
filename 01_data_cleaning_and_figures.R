@@ -2,7 +2,7 @@ library(reshape2)
 library(tidyverse)
 library(stringr)
 
-CYP3A4.act <- read.table("CYP3A4_invitro.csv", header=TRUE, sep=",", fill=TRUE, quote="")
+CYP3A4.act <- read.table("CYP3A4_invitro_zerosupdated.csv", header=TRUE, sep=",", fill=TRUE, quote="")
 
 #plots
 ##boxplot of activity, all substrates
