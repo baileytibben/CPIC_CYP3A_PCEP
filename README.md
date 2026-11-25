@@ -19,6 +19,7 @@ The dataset was manually curated from published literature reporting in vitro fu
 ### Activity values
 - Reported as **percent activity relative to reference (wild-type) CYP3A4*1
 - In most cases, values were directly extracted as reported in the publication
+- undetectable measurements were qualitatively contained within the dataset as "ND"
 - In cases where percent activity was not explicitly reported, it was **calculated from kinetic parameters** using:
   Percent activity = (Vmax/Km_variant) / (Vmax/Km_reference) × 100
 
